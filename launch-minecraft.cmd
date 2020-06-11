@@ -8,7 +8,7 @@ if exist ".\MinecraftLauncher.exe" (
 set mcportable-setup=MinecraftLauncher.exe
 )
 if %errorlevel% neq 0 (
-echo Ein Fehler ist aufgetreten!
+echo An error occurred. Please try again.
 pause
 exit
 )
@@ -18,7 +18,7 @@ echo.
 echo.
 echo ################################################################
 echo.
-echo      MinecraftLauncher.exe or Minecraft.exe was not found!
+echo      Minecraft.exe or MinecraftLauncher.exe was not found!
 echo.
 echo ################################################################
 echo.
