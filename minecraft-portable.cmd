@@ -1,1 +1,0 @@
-powershell -executionpolicy bypass -nologo -command "./minecraft-portable.ps1"

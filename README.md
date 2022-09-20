@@ -9,5 +9,3 @@ If your ExecutionPolicy doesn't allow the script to run, execute these commands 
 
 -   `Set-ExecutionPolicy RemoteSigned`
 -   `Unblock-File "x:/minecraft/minecraft-portable.ps1"`
-
-Alternatively run the cmd wrapper **minecraft-portable.cmd**
