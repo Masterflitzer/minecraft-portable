@@ -1,36 +1,51 @@
+Set-StrictMode -Version 3
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-function NormalizePath ([string]$path) { return $path.Replace('\', '/').ToLower() }
+$myHome = [Environment]::GetFolderPath("UserProfile")
+$url = "https://launcher.mojang.com/download/Minecraft.exe"
+
+function EliminateMultipleSlash ([string]$s) {
+    return [Regex]::Replace($s, "//+", "/")
+}
+
+function NormalizePath ([string]$s) {
+    return EliminateMultipleSlash $s.Replace('~', $myHome).Replace('\', '/')
+}
 
 Set-Location $PSScriptRoot
-$_dir = NormalizePath([System.IO.Path]::Combine($PSScriptRoot, ".minecraft"))
-$_launcher = NormalizePath([System.IO.Path]::Combine($PSScriptRoot, "minecraft.exe"))
-$_tmp = NormalizePath([System.IO.Path]::Combine($env:TMP, ".minecraft"))
-$_url = "https://launcher.mojang.com/download/Minecraft.exe"
 
-Write-Host
-if (!(Test-Path "$_launcher")) {
-    Write-Host "Downloading minecraft launcher..."
-    Invoke-WebRequest -Uri "$_url" -OutFile "./minecraft.exe"
+$dir = NormalizePath $([System.IO.Path]::Combine($PSScriptRoot, ".minecraft"))
+$launcher = NormalizePath $([System.IO.Path]::Combine($PSScriptRoot, "minecraft.exe"))
+$tmp = NormalizePath $([System.IO.Path]::Combine($env:TMP, ".minecraft"))
+
+Write-Output ""
+
+if (!(Test-Path -PathType Leaf $launcher)) {
+    Write-Output "Downloading Minecraft launcher..."
+    Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $launcher
 }
 
-if (!(Test-Path "$_dir")) { New-Item -Force -ItemType Directory "$_dir" | Out-Null }
-if (Test-Path "$_tmp") { 
-    Write-Host "Cleaning up..."
-    Remove-Item -Force -Recurse "$_tmp/*"
+if (!(Test-Path -PathType Container $dir)) {
+    New-Item -ItemType Directory $dir -Force > $null
 }
-else { New-Item -Force -ItemType Directory "$_tmp" | Out-Null }
 
-Write-Host "Copying minecraft files..."
-Copy-Item -Force -Recurse -Container "$_dir/*" "$_tmp"
+if (Test-Path -PathType Container $tmp) { 
+    Write-Output "Cleaning up..."
+    Remove-Item -Recurse $tmp -Force
+} else {
+    New-Item -ItemType Directory $tmp -Force > $null
+}
 
-Write-Host "Launching minecraft..."
-Start-Process -Wait -FilePath "$_launcher" -ArgumentList "--workDir `"$_tmp`" --lockDir `"$_tmp`""
+Write-Output "Copying Minecraft files..."
+Copy-Item -Recurse -Container "$dir/*" $tmp -Force
 
-Write-Host "Saving minecraft files..."
-Copy-Item -Force -Recurse -Container "$_tmp/*" "$_dir"
+Write-Output "Launching Minecraft..."
+Start-Process -Wait -FilePath $launcher -ArgumentList "--workDir `"$tmp`" --lockDir `"$tmp`""
 
-Write-Host "Done!`n"
-Write-Host -NoNewline "Press any key to continue..."
-[System.Console]::ReadKey($true) | Out-Null
+Write-Output "Saving Minecraft files..."
+Copy-Item -Recurse -Container "$tmp/*" $dir -Force
+
+Write-Output "Done!`n"
+Write-Output "Press any key to continue..."
+[System.Console]::ReadKey($true) > $null
