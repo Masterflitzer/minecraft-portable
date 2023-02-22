@@ -2,35 +2,49 @@ Set-StrictMode -Version 3
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$myHome = [Environment]::GetFolderPath("UserProfile")
-$url = "https://launcher.mojang.com/download/Minecraft.exe"
-
-function EliminateMultipleSlash ([string]$s) {
-    return [Regex]::Replace($s, "//+", "/")
+if ([System.Environment]::OSVersion.Platform -ne "Win32NT") {
+    throw "This script only supports Windows!"
 }
 
-function NormalizePath ([string]$s) {
-    return EliminateMultipleSlash $s.Replace('~', $myHome).Replace('\', '/')
+$homeDir = [System.Environment]::GetFolderPath("UserProfile")
+$url = "https://launcher.mojang.com/download/Minecraft.exe"
+
+function EliminateMultipleSlash {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string] $s
+    )
+    return [regex]::Replace($s, "//+", "/")
+}
+
+function NormalizePath {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string] $s
+    )
+    return $s.Replace('~', $homeDir).Replace('\', '/') | EliminateMultipleSlash
 }
 
 Set-Location $PSScriptRoot
 
-$dir = NormalizePath $([System.IO.Path]::Combine($PSScriptRoot, ".minecraft"))
-$launcher = NormalizePath $([System.IO.Path]::Combine($PSScriptRoot, "minecraft.exe"))
-$tmp = NormalizePath $([System.IO.Path]::Combine($env:TMP, ".minecraft"))
+$dir = [System.IO.Path]::Combine($PSScriptRoot, ".minecraft") | NormalizePath
+$launcher = [System.IO.Path]::Combine($PSScriptRoot, "minecraft.exe") | NormalizePath
+$tmp = [System.IO.Path]::Combine($env:TMP, ".minecraft") | NormalizePath
 
 Write-Output ""
 
-if (!(Test-Path -PathType Leaf $launcher)) {
+if (!(Test-Path $launcher)) {
     Write-Output "Downloading Minecraft launcher..."
-    Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $launcher
+    Invoke-RestMethod -OutFile $launcher $url
 }
 
-if (!(Test-Path -PathType Container $dir)) {
+if (!(Test-Path $dir)) {
     New-Item -ItemType Directory $dir -Force > $null
 }
 
-if (Test-Path -PathType Container $tmp) { 
+if (Test-Path $tmp) { 
     Write-Output "Cleaning up..."
     Remove-Item -Recurse $tmp -Force
 } else {
